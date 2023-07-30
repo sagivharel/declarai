@@ -3,13 +3,13 @@ An interface to extract different parts of the provided function into python obj
 """
 
 import inspect
-import re
 from typing import Callable, Dict, Optional
 
 from ..magic_parser import Magic, extract_magic_args
 from ..types import DocstringFreeform, DocstringParams, DocstringReturn
 from .docstring_parsers.reST import ReSTDocstringParser
 from .type_hint_resolver import resolve_type_hints
+from ...utils.timer import Timer
 
 
 class ParsedFunction:
@@ -81,7 +81,9 @@ class ParsedFunction:
 
     @property
     def magic(self) -> Magic:
-        func_str = inspect.getsource(self.func)
+        with Timer("magic_parser"):
+            func_str = inspect.getsource(self.func)
+
         if "magic(" not in func_str:
             return Magic()
         return extract_magic_args(func_str)

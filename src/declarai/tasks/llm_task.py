@@ -16,6 +16,7 @@ from declarai.llm import LLM
 from declarai.llm.settings import PromptSettings
 
 from .future_task import FutureLLMTask
+from ..utils.timer import Timer
 
 logger = logging.getLogger("BaseFunction")
 
@@ -51,31 +52,32 @@ class LLMTask:
         """
         logger.debug(prompt)
         raw_result = self._llm.predict(prompt)
-        try:
-            if self._prompt_config.multi_results:
-                json_values = re.findall(r"{.*?}", raw_result, re.DOTALL)
-                serialized = {}
-                for json_value in json_values:
-                    serialized_json_value = json.loads(json_value)
-                    serialized.update(serialized_json_value)
-                return serialized
-            else:
-                json_values = re.findall(r"{.*}", raw_result, re.DOTALL)
-                serialized = {}
-                for json_value in json_values:
-                    serialized_json_value = json.loads(json_value)
-                    serialized.update(serialized_json_value)
-                if self._prompt_config.return_name in serialized:
-                    return serialized[self._prompt_config.return_name]
-                return serialized
+        with Timer("output parsing"):
+            try:
+                if self._prompt_config.multi_results:
+                    json_values = re.findall(r"{.*?}", raw_result, re.DOTALL)
+                    serialized = {}
+                    for json_value in json_values:
+                        serialized_json_value = json.loads(json_value)
+                        serialized.update(serialized_json_value)
+                    return serialized
+                else:
+                    json_values = re.findall(r"{.*}", raw_result, re.DOTALL)
+                    serialized = {}
+                    for json_value in json_values:
+                        serialized_json_value = json.loads(json_value)
+                        serialized.update(serialized_json_value)
+                    if self._prompt_config.return_name in serialized:
+                        return serialized[self._prompt_config.return_name]
+                    return serialized
 
-        except json.JSONDecodeError:
-            logger.warning(
-                "Failed to parse generated data\nplan: %s\ngenerated: %s",
-                self._plan,
-                raw_result,
-            )
-            return None
+            except json.JSONDecodeError:
+                logger.warning(
+                    "Failed to parse generated data\nplan: %s\ngenerated: %s",
+                    self._plan,
+                    raw_result,
+                )
+                return None
 
     def compile(self, **kwargs) -> str:
         """
@@ -89,8 +91,9 @@ class LLMTask:
         return template
 
     def _plan(self, **kwargs) -> str:
-        logger.debug("Creating task plan (Injecting data into template)")
-        return self.compile().format(**kwargs)
+        with Timer("Plan task"):
+            logger.debug("Creating task plan (Injecting data into template)")
+            return self.compile().format(**kwargs)
 
     def plan(self, **kwargs) -> FutureLLMTask:
         """
@@ -110,9 +113,10 @@ class LLMTask:
         Executes the task.
         """
         logger.debug("Running planned task")
-        if self._prompt_config.structured:
-            return self._exec_structured(populated_prompt)
-        return self._exec_unstructured(populated_prompt)
+        with Timer("Execute task"):
+            if self._prompt_config.structured:
+                return self._exec_structured(populated_prompt)
+            return self._exec_unstructured(populated_prompt)
 
     def __call__(self, **kwargs):
         populated_prompt = self._plan(**kwargs)

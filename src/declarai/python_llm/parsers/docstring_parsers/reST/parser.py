@@ -6,6 +6,7 @@ from declarai.python_llm.parsers.docstring_parsers.base_parser import (
     DocstringParams,
     DocstringReturn,
 )
+from declarai.utils.timer import Timer
 
 reST_PARAM_KEY: str = ":param"
 reST_RETURN_KEY: str = ":return"
@@ -27,29 +28,32 @@ class ReSTDocstringParser(BaseDocStringParser):
 
     @property
     def freeform(self) -> DocstringFreeform:
-        freeform = re.search(reST_FREEFORM_REGEX, self.docstring).group().strip()
+        with Timer("freeform_parser"):
+            freeform = re.search(reST_FREEFORM_REGEX, self.docstring).group().strip()
         return freeform
 
     @property
     def params(self) -> DocstringParams:
-        params = [
-            param.group().strip()
-            for param in re.finditer(reST_PARAMS_REGEX, self.docstring)
-        ]
-        params_dict = {}
-        for param in params:
-            param = param.replace(reST_PARAM_KEY, "").strip()
-            param_name, doc = param.split(":")
-            params_dict[param_name] = doc.strip()
-        return params_dict
+        with Timer("params_parser"):
+            params = [
+                param.group().strip()
+                for param in re.finditer(reST_PARAMS_REGEX, self.docstring)
+            ]
+            params_dict = {}
+            for param in params:
+                param = param.replace(reST_PARAM_KEY, "").strip()
+                param_name, doc = param.split(":")
+                params_dict[param_name] = doc.strip()
+            return params_dict
 
     @property
     def returns(self) -> DocstringReturn:
-        matched_returns = re.search(reST_RETURN_REGEX, self.docstring)
-        if matched_returns:
-            returns = matched_returns.group().strip()
-            returns = returns.replace(reST_RETURN_KEY, "").strip()
-            return_name, return_doc = returns.split(":")
-            return return_name, return_doc.strip()
+        with Timer("return_parser"):
+            matched_returns = re.search(reST_RETURN_REGEX, self.docstring)
+            if matched_returns:
+                returns = matched_returns.group().strip()
+                returns = returns.replace(reST_RETURN_KEY, "").strip()
+                return_name, return_doc = returns.split(":")
+                return return_name, return_doc.strip()
 
-        return "", ""
+            return "", ""
