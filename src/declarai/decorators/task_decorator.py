@@ -2,7 +2,7 @@ from functools import partial
 from typing import overload, Callable, Any, List, Type, Optional, Dict, Union
 from declarai.decorators.base import LLMOrchestratorDecorator
 from declarai.middlewares.base import TaskMiddleware
-from declarai.operators import resolve_operator
+from declarai.operators import resolve_operator, BaseOperator
 from declarai.operators.base.types.llm_params import LLMParamsType
 from declarai.orchestrator.task_orchestrator import LLMTaskOrchestrator
 
@@ -10,7 +10,8 @@ from declarai.orchestrator.task_orchestrator import LLMTaskOrchestrator
 class LLMTaskDecorator(LLMOrchestratorDecorator):
     @overload
     def __call__(self, decorated: None = None, *, middlewares: Optional[List[Type[TaskMiddleware]]] = None,
-                 llm_params: Optional[Union[LLMParamsType, Dict[str, Any]]] = None) -> Callable[..., LLMTaskOrchestrator]:
+                 llm_params: Optional[Union[LLMParamsType, Dict[str, Any]]] = None) -> Callable[
+        ..., LLMTaskOrchestrator]:
         ...
 
     @overload
@@ -37,7 +38,13 @@ class LLMTaskDecorator(LLMOrchestratorDecorator):
             # When no arguments are passed
             return self.return_orchestrator(decorated)
 
-    def get_operator(self, **kwargs):
+    def get_operator(self, **kwargs) -> Type[BaseOperator]:
+        """
+        Returns the operator to be used for the task
+        If a user has passed an operator, it will be used else the operator will be resolved from the config
+        """
+        if kwargs.get("operator"):
+            return kwargs.get("operator")
         return resolve_operator(self.declarai_instance.llm_config, **kwargs)
 
     def return_orchestrator(

@@ -46,4 +46,23 @@ def resolve_operator(
         if open_ai_token:
             return operator.new_operator(openai_token=open_ai_token, model=model)
         return operator.new_operator(model=model)
+
+    elif llm_config.provider == "azure_openai":
+        azure_open_ai_version = kwargs.get("openai_api_version")
+        azure_open_ai_resource = kwargs.get("openai_resource")
+        azure_open_ai_key = kwargs.get("open_ai_key")
+        if operator_type == "task":
+            operator = OpenAITaskOperator
+        elif operator_type == "chat":
+            operator = OpenAIChatOperator
+
+        if azure_open_ai_key:
+            return operator.new_operator(
+                openai_api_version=azure_open_ai_version,
+                openai_resource=azure_open_ai_resource,
+                openai_token=azure_open_ai_key,
+            )
+
+
+
     raise NotImplementedError()

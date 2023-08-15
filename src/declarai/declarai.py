@@ -3,7 +3,7 @@ from typing import Optional, overload
 from declarai.decorators.chat_decorator import LLMChatDecorator
 from declarai.decorators.magic import magic
 from declarai.decorators.task_decorator import LLMTaskDecorator
-from declarai.operators import LLMSettings, ModelsOpenai, ProviderOpenai
+from declarai.operators import LLMSettings, ModelsOpenai, ProviderOpenai, BaseOperator
 
 
 class Declarai:
@@ -19,6 +19,13 @@ class Declarai:
     # * Additionally supported providers should be exposed via the Declarai class *
     # * here:                                                                     *
     # *-------------------------------------------------------------------------- *
+    @overload
+    def __init__(
+        self,
+        operator: BaseOperator,
+    ):
+        ...
+
     @overload
     def __init__(
         self,
